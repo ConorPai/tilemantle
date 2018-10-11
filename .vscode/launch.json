@@ -1,0 +1,20 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "启动程序",
+            "program": "${workspaceFolder}/bin/tilemantle.js",
+            "args": [
+                "http://localhost:8099/3159aeb7-8963-420b-aafc-7c9514c98d41/{z}/{x}/{y}/tile.png",
+                "--extent=60,72,15,135",
+                "-z=0-5",
+                "--s=1"
+            ]
+        }
+    ]
+}

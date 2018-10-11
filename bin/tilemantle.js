@@ -7,7 +7,7 @@ var path = require('path');
 var turf = require('@turf/turf');
 var numeral = require('numeral');
 var request = require('request');
-var tilecover = require('@mapbox/tile-cover');
+var tilecover = require('@conorpai/tile-cover');
 var humanizeDuration = require('humanize-duration');
 var pkg = require('../package.json');
 var ProgressBar = require('progress');
@@ -33,6 +33,7 @@ var argv = require('yargs')
 	.alias('r', 'retries').describe('r', 'Number of retries')
 	.alias('m', 'method').describe('m', 'HTTP method to use to fetch tiles').string('m')
 	.alias('H', 'header').describe('H', 'Add a request header').string('H')
+	.alias('s', 'srstype').describe('S', 'Spatialreference Type').string('S')
 	.alias('c', 'concurrency').describe('c', 'Number of tiles to request simultaneously')
 	.default({delay: '100ms', concurrency: 1, allowfailures: true, retries: 10, method: 'HEAD'})
 	.check(function(argv) {
@@ -158,7 +159,7 @@ async.series([
 		function buildTileList(geojson, zooms) {
 			var groups = [];
 			zooms.forEach(function(z) {
-				groups.push(tilecover.tiles(geojson, {min_zoom: z, max_zoom: z}));
+				groups.push(tilecover.tiles(geojson, {min_zoom: z, max_zoom: z}, argv.srstype));
 			});
 			var result = [];
 			return result.concat.apply(result, groups);
