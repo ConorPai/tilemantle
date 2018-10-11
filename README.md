@@ -25,6 +25,7 @@ Options:
   -r, --retries      Number of retries
   -H, --header       Set request header                                        
   -c, --concurrency  Number of tiles to request simultaneously
+  -s, --srstype      SpatialReference Type. Default is Geographic Coordinate System, 1 is Web Mercator
 ```
 
 ### Usage
