@@ -25,7 +25,7 @@ var argv = require('yargs')
 	.alias('l', 'list').describe('l', 'Don\'t perform any requests, just list all tile URLs').boolean('l')
 	.alias('a', 'allowfailures').describe('a', 'Skip failures, keep on truckin\'').boolean('a')
 	.alias('z', 'zoom').describe('z', 'Zoom levels (comma separated or range)').string('z')
-	.alias('e', 'extent').describe('e', 'Extent of region in the form of: nw_lat,nw_lon,se_lat,se_lon').string('e')
+	.alias('e', 'extent').describe('e', 'Extent of region in the form of: xmin,ymin,xmax,ymax').string('e')
 	.alias('f', 'file').describe('f', 'GeoJSON file on disk to use as geometry').string('f')
 	.alias('p', 'point').describe('p', 'Center of region (use in conjunction with -b)').string('p')
 	.alias('b', 'buffer').describe('b', 'Buffer point/geometry by an amount. Affix units at end: mi,km').string('b')
@@ -46,7 +46,7 @@ function displayHelp() {
 	yargs.showHelp();
 	console.log('Examples:');
 	console.log('  $ tilemantle http://myhost.com/{z}/{x}/{y}.png --point=44.523333,-109.057222 --buffer=12mi --zoom=10-14');
-	console.log('  $ tilemantle http://myhost.com/{z}/{x}/{y}.png --extent=44.523333,-109.057222,41.145556,-104.801944 --zoom=10-14');
+	console.log('  $ tilemantle http://myhost.com/{z}/{x}/{y}.png --extent=-109.057222,41.145556,-104.801944,44.523333 --zoom=10-14');
 	console.log('  $ tilemantle http://myhost.com/{z}/{x}/{y}.png --zoom=10-14 -f region.geojson');
 	console.log('  $ cat region.geojson | tilemantle http://myhost.com/{z}/{x}/{y}.png --zoom=10-14');
 	console.log('  $ cat region.geojson | tilemantle http://myhost.com/{z}/{x}/{y}.png --buffer=20mi --zoom=10-14');
@@ -112,8 +112,8 @@ async.series([
 		} else if (argv.e) {
 			var coords = String(argv.extent).split(',').map(parseFloat);
 			geojson = turf.featureCollection([
-				turf.point([coords[1], coords[0]]),
-				turf.point([coords[3], coords[2]])
+				turf.point([coords[0], coords[3]]),
+				turf.point([coords[2], coords[1]])
 			]);
             geojson = turf.bboxPolygon(turf.bbox(geojson));
 		} else {
