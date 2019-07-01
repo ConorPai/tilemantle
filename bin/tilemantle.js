@@ -214,7 +214,7 @@ async.series([
 				pgCheck = new check(options);
 			}
 			async.eachOfLimit(xyzList, argv.concurrency, function(xyz,key, callback) {
-				if (argv.srstype == 1 && argv.Postgresql != undefined && pgCheck != undefined)
+				if (xyz[2] >= 10 && argv.srstype == undefined && argv.Postgresql != undefined && pgCheck != undefined)
 				{
 					bbox = [];
 					bbox.push(xyz[0] / Math.pow(2, xyz[2]) * 360 - 180);

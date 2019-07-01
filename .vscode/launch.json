@@ -10,11 +10,10 @@
             "name": "启动程序",
             "program": "${workspaceFolder}/bin/tilemantle.js",
             "args": [
-                "http://localhost:9099/b4f01f61-59f3-474f-a35a-a40bbb5817e5/{z}/{x}/{y}/tile.png",
-                "--extent=80.2873327501066,18.4909747501849,134.447191377081,52.5880440001308",
-                "-z=0-5",
-                "--s=1",
-                "--P=localhost,5432,lydb,postgres,dlwy,userdata.shpimport_quanguo_4028800483630"
+                "http://192.168.1.46:9099/14bfb2f1-aba2-430c-80af-0d0df86ffcbe/{z}/{x}/{y}/tile.png",
+                "--extent=105,20,113,30",
+                "-z=0-10",
+                "--P=192.168.1.46,5432,lydb,postgres,dlwy,ldgx2_p"
             ],
             "console":"externalTerminal"
         }
