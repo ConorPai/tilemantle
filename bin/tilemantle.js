@@ -35,6 +35,7 @@ var argv = require('yargs')
 	.alias('H', 'header').describe('H', 'Add a request header').string('H')
 	.alias('s', 'srstype').describe('S', 'Spatialreference Type').string('S')
 	.alias('c', 'concurrency').describe('c', 'Number of tiles to request simultaneously')
+	.alias('P', 'Postgresql').describe('P', 'use pg check tile has data')
 	.default({delay: '100ms', concurrency: 1, allowfailures: true, retries: 10, method: 'HEAD'})
 	.check(function(argv) {
 		if (!/^\d+(\.\d+)?(ms|s)$/.test(argv.delay)) throw new Error('Invalid "delay" argument');
@@ -197,53 +198,133 @@ async.series([
 			bar = new ProgressBar(chalk.gray('[:bar] :percent (:current/:total) eta: :etas'), {total: xyzList.length, width: 20});
             function sleep(sleepTime) {
                 for(var start = +new Date; +new Date - start < sleepTime;){}
-            }
+			}
+			var pgCheck = undefined;
+			if (argv.Postgresql != undefined)
+			{
+				var check = require('./pgCheck');
+				var params = argv.Postgresql.split(',');
+				var options = {};
+				options.host = params[0];
+				options.port = params[1];
+				options.database = params[2];
+				options.user = params[3];
+				options.password = params[4];
+				options.tablename = params[5];
+				pgCheck = new check(options);
+			}
 			async.eachOfLimit(xyzList, argv.concurrency, function(xyz,key, callback) {
-                var url = urltemplates[0].replace(/\{x\}/g, xyz[0]).replace(/\{y\}/g, xyz[1]).replace(/\{z\}/g, xyz[2]);
-				async.retry(argv.retries, function(callback) {
-					var start = (new Date()).getTime();
-                    requestProcess.call(null)
-					function requestProcess(){
-                        request({
-                            method: argv.method,
-                            url: url,
-                            headers: headers
-                        }, function(err, res, body) {
-                            if (err) {
-                            	sleep(5000)
-								console.log(chalk.red("\n连接已经断开，5秒后重连！！"))
+				if (argv.srstype == 1 && argv.Postgresql != undefined && pgCheck != undefined)
+				{
+					bbox = [];
+					bbox.push(xyz[0] / Math.pow(2, xyz[2]) * 360 - 180);
+					bbox.push(90 - (xyz[1] + 1) / Math.pow(2, xyz[2]) * 360);
+					bbox.push((xyz[0] + 1) / Math.pow(2, xyz[2]) * 360 - 180);
+					bbox.push(90 - xyz[1] / Math.pow(2, xyz[2]) * 360);
+					pgCheck.checkNeedRequest(bbox, function (hasdata){
+							
+						if (!hasdata)
+						{
+							console.log('tile ' + xyz + ':' + bbox + ' is no data');
+							callback();
+						}
+						else
+						{
+							var url = urltemplates[0].replace(/\{x\}/g, xyz[0]).replace(/\{y\}/g, xyz[1]).replace(/\{z\}/g, xyz[2]);
+							async.retry(argv.retries, function(callback) {
+								var start = (new Date()).getTime();
 								requestProcess.call(null)
-								return
-							}
-                            var time = (new Date()).getTime() - start;
-                            var statuscolor = res.statusCode !== 200 ? 'red' : 'green';
-                            var size_data = filesize(res.body.length);
-                            var size_length = res.headers['content-length'] ? filesize(Number(res.headers['content-length'])) : '(no content-length)';
-                            process.stdout.cursorTo(0);
-                            console.log(chalk.gray('[') + chalk[statuscolor](res.statusCode) + chalk.grey(']') + ' ' + url + ' ' + chalk.blue(time + 'ms') + ' ' + chalk.grey(size_data + ', ' + size_length));
-                            if (res.statusCode !== 200) {
-                                // tip for http request error
-                                var errMsg = 'Request failed (non -200 status)';
-                                bar.interrupt(errMsg+'\ncurrent progress is '+ bar.curr+'/'+bar.total);
-                                // if in retry,count_failed do not change
-                                if(typeof prevKey === "undefined")  prevKey = "undefined";
-                                if(prevKey !== key){
-                                    count_failed++;
-                                    prevKey = key;
-                                }
-                                callback(errMsg);
-                            } else {
-                                bar.tick();
-                                count_succeeded++;
-                                callback();
-                            }
-                        });
-					}
+								function requestProcess(){
+									request({
+										method: argv.method,
+										url: url,
+										headers: headers
+									}, function(err, res, body) {
+										if (err) {
+											sleep(5000)
+											console.log(chalk.red("\n连接已经断开，5秒后重连！！"))
+											requestProcess.call(null)
+											return
+										}
+										var time = (new Date()).getTime() - start;
+										var statuscolor = res.statusCode !== 200 ? 'red' : 'green';
+										var size_data = filesize(res.body.length);
+										var size_length = res.headers['content-length'] ? filesize(Number(res.headers['content-length'])) : '(no content-length)';
+										process.stdout.cursorTo(0);
+										console.log(chalk.gray('[') + chalk[statuscolor](res.statusCode) + chalk.grey(']') + ' ' + url + ' ' + chalk.blue(time + 'ms') + ' ' + chalk.grey(size_data + ', ' + size_length));
+										if (res.statusCode !== 200) {
+											// tip for http request error
+											var errMsg = 'Request failed (non -200 status)';
+											bar.interrupt(errMsg+'\ncurrent progress is '+ bar.curr+'/'+bar.total);
+											// if in retry,count_failed do not change
+											if(typeof prevKey === "undefined")  prevKey = "undefined";
+											if(prevKey !== key){
+												count_failed++;
+												prevKey = key;
+											}
+											callback(errMsg);
+										} else {
+											bar.tick();
+											count_succeeded++;
+											callback();
+										}
+									});
+								}
 
-				}, function(err) {
-					if (err && argv.allowfailures) err = null;
-					callback(err);
-				});
+							}, function(err) {
+								if (err && argv.allowfailures) err = null;
+								callback(err);
+							});
+						}
+					});
+				}
+				else {
+					var url = urltemplates[0].replace(/\{x\}/g, xyz[0]).replace(/\{y\}/g, xyz[1]).replace(/\{z\}/g, xyz[2]);
+					async.retry(argv.retries, function(callback) {
+						var start = (new Date()).getTime();
+						requestProcess.call(null)
+						function requestProcess(){
+							request({
+								method: argv.method,
+								url: url,
+								headers: headers
+							}, function(err, res, body) {
+								if (err) {
+									sleep(5000)
+									console.log(chalk.red("\n连接已经断开，5秒后重连！！"))
+									requestProcess.call(null)
+									return
+								}
+								var time = (new Date()).getTime() - start;
+								var statuscolor = res.statusCode !== 200 ? 'red' : 'green';
+								var size_data = filesize(res.body.length);
+								var size_length = res.headers['content-length'] ? filesize(Number(res.headers['content-length'])) : '(no content-length)';
+								process.stdout.cursorTo(0);
+								console.log(chalk.gray('[') + chalk[statuscolor](res.statusCode) + chalk.grey(']') + ' ' + url + ' ' + chalk.blue(time + 'ms') + ' ' + chalk.grey(size_data + ', ' + size_length));
+								if (res.statusCode !== 200) {
+									// tip for http request error
+									var errMsg = 'Request failed (non -200 status)';
+									bar.interrupt(errMsg+'\ncurrent progress is '+ bar.curr+'/'+bar.total);
+									// if in retry,count_failed do not change
+									if(typeof prevKey === "undefined")  prevKey = "undefined";
+									if(prevKey !== key){
+										count_failed++;
+										prevKey = key;
+									}
+									callback(errMsg);
+								} else {
+									bar.tick();
+									count_succeeded++;
+									callback();
+								}
+							});
+						}
+
+					}, function(err) {
+						if (err && argv.allowfailures) err = null;
+						callback(err);
+					});
+				}
 			}, callback);
 		}
 	}
