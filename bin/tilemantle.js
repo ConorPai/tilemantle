@@ -211,6 +211,7 @@ async.series([
 				options.user = params[3];
 				options.password = params[4];
 				options.tablename = params[5];
+				options.tablewhere = params[6];
 				pgCheck = new check(options);
 			}
 			async.eachOfLimit(xyzList, argv.concurrency, function(xyz,key, callback) {

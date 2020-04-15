@@ -16,6 +16,7 @@ function pgCheck (options) {
     }
     this.pgpool = new pg.Pool(dbconfig);
     this.tablename = options.tablename;
+    this.tablewhere = options.tablewhere;
     globalThis = this;
 };
 
@@ -33,6 +34,9 @@ function sqlquery (sql, calback) {
 pgCheck.prototype.checkNeedRequest = (bbox, callback) => {
     
     var sql = "select count(*) as datacount from " + globalThis.tablename + " where st_intersects(geom, st_setsrid(st_makeenvelope(" + bbox[0] + "," + bbox[1] + "," + bbox[2] + "," + bbox[3] + "),4490))"
+
+    if (globalThis.tablewhere != undefined)
+        sql += " and " + globalThis.tablewhere;
 
     sqlquery(sql, function(err, res){
         callback(res.rows[0]["datacount"] > 0);
