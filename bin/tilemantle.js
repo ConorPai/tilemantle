@@ -149,8 +149,14 @@ async.series([
 			var parts = argv.zoom.split('-').map(Number);
 			var minzoom = parts[0];
 			var maxzoom = parts[1];
-			for (var z = minzoom; z <= maxzoom; z++) {
-				zooms.push(z);
+			if (minzoom <= maxzoom) {
+				for (var z = minzoom; z <= maxzoom; z++) {
+					zooms.push(z);
+				}
+			} else {
+				for (var z = minzoom; z >= maxzoom; z--) {
+					zooms.push(z);
+				}
 			}
 		} else {
 			zooms = argv.zoom.split(',').map(Number);
